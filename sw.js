@@ -1,4 +1,4 @@
-const CACHE_NAME = 'beats-v1';
+const CACHE_NAME = 'beats-v7';
 const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (event) => {

@@ -24,8 +24,8 @@
   <header id="home-header" class="border-b border-neutral-800/80 bg-neutral-950/90 backdrop-blur sticky top-0 z-10">
     <div class="max-w-2xl mx-auto px-4 py-3.5 flex items-center justify-between gap-3">
       <div class="flex items-center gap-3 min-w-0">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20">
-          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+        <div class="w-9 h-9 rounded-xl bg-black border border-neutral-800 flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/15">
+          <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
           </svg>
         </div>
@@ -197,7 +197,7 @@
       <!-- Song Header -->
       <div class="flex items-center justify-between gap-3 py-2 border-b border-neutral-800">
         <div class="flex items-center gap-3.5 min-w-0">
-          <div class="w-12 h-12 rounded-md bg-neutral-800 flex items-center justify-center text-neutral-300 shrink-0">
+          <div id="menu-song-cover" class="w-12 h-12 rounded-md bg-neutral-800 flex items-center justify-center text-neutral-300 shrink-0 overflow-hidden">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
             </svg>
@@ -282,9 +282,16 @@
 
       <!-- Track Info + Playback Controls -->
       <div class="flex items-center justify-between gap-4">
-        <div class="min-w-0">
-          <p id="now-playing-title" class="text-sm font-semibold text-white truncate">Select a song to play</p>
-          <p id="now-playing-artist" class="text-xs text-neutral-400 truncate">Tap a playlist to begin</p>
+        <div class="flex items-center gap-3 min-w-0">
+          <div id="now-playing-cover" class="w-10 h-10 rounded-md bg-neutral-800 flex items-center justify-center text-neutral-400 shrink-0 overflow-hidden">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+            </svg>
+          </div>
+          <div class="min-w-0">
+            <p id="now-playing-title" class="text-sm font-semibold text-white truncate">Select a song to play</p>
+            <p id="now-playing-artist" class="text-xs text-neutral-400 truncate">Tap a playlist to begin</p>
+          </div>
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
@@ -327,7 +334,28 @@
     let searchQuery = '';
     let modalTrackId = null;
     let menuTrackId = null;
+    let historyDepth = 0;
+    let ignoreNextPopstate = false;
     let db = null;
+
+    function pushAppHistory(stateObj) {
+      try {
+        history.pushState(stateObj, '');
+        historyDepth += 1;
+      } catch (err) {}
+    }
+
+    function popAppHistorySilently() {
+      if (historyDepth > 0) {
+        historyDepth -= 1;
+        ignoreNextPopstate = true;
+        try {
+          history.back();
+        } catch (err) {
+          ignoreNextPopstate = false;
+        }
+      }
+    }
 
     const PLAYLIST_STORAGE_KEY = 'my_music_playlists_v2';
 
@@ -349,6 +377,8 @@
     // 2. DOM ELEMENTS
     const audio = document.getElementById('audio-player');
     const fileInput = document.getElementById('file-input');
+    const nowPlayingCoverEl = document.getElementById('now-playing-cover');
+    const menuSongCoverEl = document.getElementById('menu-song-cover');
     const homeHeaderEl = document.getElementById('home-header');
     const playlistsViewEl = document.getElementById('playlists-view');
     const songsViewEl = document.getElementById('songs-view');
@@ -494,6 +524,117 @@
       });
     }
 
+    const NOTE_ICON_SVG = '<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/></svg>';
+
+    function setCoverElement(el, coverUrl) {
+      el.innerHTML = '';
+      if (coverUrl) {
+        const img = document.createElement('img');
+        img.src = coverUrl;
+        img.alt = 'Cover art';
+        img.className = 'w-full h-full object-cover';
+        el.appendChild(img);
+      } else {
+        el.innerHTML = NOTE_ICON_SVG;
+      }
+    }
+
+    // Extract embedded ID3v2 title, artist, and album cover from audio files
+    async function extractEmbeddedMetadata(file) {
+      const result = { title: null, artist: null, coverBlob: null };
+      try {
+        const buffer = await file.slice(0, 1024 * 1024).arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        if (bytes.length < 10 || bytes[0] !== 0x49 || bytes[1] !== 0x44 || bytes[2] !== 0x33) {
+          return result;
+        }
+        const version = bytes[3];
+        const tagSize = ((bytes[6] & 0x7f) << 21) | ((bytes[7] & 0x7f) << 14) | ((bytes[8] & 0x7f) << 7) | (bytes[9] & 0x7f);
+        const limit = Math.min(bytes.length, 10 + tagSize);
+        let offset = 10;
+
+        function decodeText(slice, enc) {
+          try {
+            if (enc === 1 || enc === 2) {
+              return new TextDecoder(enc === 2 ? 'utf-16be' : 'utf-16').decode(slice).replace(/\0/g, '').trim();
+            }
+            return new TextDecoder(enc === 3 ? 'utf-8' : 'iso-8859-1').decode(slice).replace(/\0/g, '').trim();
+          } catch (e) {
+            return '';
+          }
+        }
+
+        while (offset + 10 <= limit) {
+          if (bytes[offset] === 0) break;
+          const id = String.fromCharCode(bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]);
+          const size = version === 4
+            ? ((bytes[offset + 4] & 0x7f) << 21) | ((bytes[offset + 5] & 0x7f) << 14) | ((bytes[offset + 6] & 0x7f) << 7) | (bytes[offset + 7] & 0x7f)
+            : (bytes[offset + 4] << 24) | (bytes[offset + 5] << 16) | (bytes[offset + 6] << 8) | bytes[offset + 7];
+
+          if (size <= 0 || offset + 10 + size > limit) break;
+          const start = offset + 10;
+          const end = start + size;
+
+          if (id === 'TIT2' && size > 1) {
+            const val = decodeText(bytes.slice(start + 1, end), bytes[start]);
+            if (val) result.title = val;
+          } else if (id === 'TPE1' && size > 1) {
+            const val = decodeText(bytes.slice(start + 1, end), bytes[start]);
+            if (val) result.artist = val;
+          } else if (id === 'APIC' && size > 4 && !result.coverBlob) {
+            const enc = bytes[start];
+            let p = start + 1;
+            let mime = '';
+            while (p < end && bytes[p] !== 0) {
+              mime += String.fromCharCode(bytes[p]);
+              p++;
+            }
+            p += 2; // skip null + picture type byte
+            if (enc === 1 || enc === 2) {
+              while (p + 1 < end && !(bytes[p] === 0 && bytes[p + 1] === 0)) p += 2;
+              p += 2;
+            } else {
+              while (p < end && bytes[p] !== 0) p++;
+              p += 1;
+            }
+            if (p < end) {
+              result.coverBlob = new Blob([bytes.slice(p, end)], { type: mime || 'image/jpeg' });
+            }
+          }
+
+          offset = end;
+        }
+      } catch (err) {}
+      return result;
+    }
+
+    // Fallback: Look up official album art from public iTunes catalog if file has no embedded cover
+    async function fetchOnlineMetadata(queryText) {
+      const info = { artist: null, coverBlob: null };
+      try {
+        const cleaned = queryText
+          .replace(/\[.*?\]|\(.*?\)/g, ' ')
+          .replace(/[_-]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (!cleaned) return info;
+        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(cleaned)}&media=music&entity=song&limit=1`);
+        if (!res.ok) return info;
+        const data = await res.json();
+        const match = data && data.results && data.results[0];
+        if (!match) return info;
+        if (match.artistName) info.artist = match.artistName;
+        if (match.artworkUrl100) {
+          const artUrl = match.artworkUrl100.replace('100x100bb', '300x300bb');
+          const imgRes = await fetch(artUrl);
+          if (imgRes.ok) {
+            info.coverBlob = await imgRes.blob();
+          }
+        }
+      } catch (err) {}
+      return info;
+    }
+
     function formatTime(sec) {
       if (!Number.isFinite(sec) || sec < 0) return '0:00';
       const m = Math.floor(sec / 60);
@@ -563,6 +704,9 @@
     }
 
     function openPlaylist(playlistId) {
+      if (currentView === 'home') {
+        pushAppHistory({ view: 'detail', playlistId });
+      }
       activePlaylistId = playlistId;
       currentView = 'detail';
       searchQuery = '';
@@ -595,8 +739,20 @@
         cardBtn.className = 'w-full h-14 rounded-lg bg-neutral-800/90 hover:bg-neutral-700/90 active:scale-[0.98] transition flex items-center overflow-hidden text-left shadow-sm';
 
         const thumb = document.createElement('div');
-        thumb.className = `w-14 h-14 bg-gradient-to-br ${item.theme} flex items-center justify-center shrink-0`;
-        thumb.innerHTML = getPlaylistIconSvg(item.id);
+        thumb.className = `w-14 h-14 bg-gradient-to-br ${item.theme} flex items-center justify-center shrink-0 overflow-hidden`;
+        const plObj = playlists.find((p) => p.id === item.id);
+        const firstSongWithCover = item.id !== 'favorites' && plObj
+          ? plObj.songIds.map((id) => tracks.find((t) => t.id === id)).find((t) => t && t.coverUrl)
+          : null;
+        if (firstSongWithCover) {
+          const img = document.createElement('img');
+          img.src = firstSongWithCover.coverUrl;
+          img.alt = item.name;
+          img.className = 'w-full h-full object-cover';
+          thumb.appendChild(img);
+        } else {
+          thumb.innerHTML = getPlaylistIconSvg(item.id);
+        }
 
         const labelWrap = document.createElement('div');
         labelWrap.className = 'px-3 min-w-0 flex-1';
@@ -663,12 +819,20 @@
         playBtn.className = 'flex-1 flex items-center gap-3.5 text-left min-w-0';
 
         const art = document.createElement('div');
-        art.className = `w-12 h-12 rounded-md flex items-center justify-center shrink-0 ${
-          isActive ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : 'bg-neutral-800 text-neutral-400'
+        art.className = `w-12 h-12 rounded-md flex items-center justify-center shrink-0 overflow-hidden ${
+          isActive ? 'bg-blue-500/20 text-blue-400 ring-2 ring-blue-500/60' : 'bg-neutral-800 text-neutral-400'
         }`;
-        art.innerHTML = isActive && !audio.paused
-          ? `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`
-          : `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/></svg>`;
+        if (track.coverUrl) {
+          const img = document.createElement('img');
+          img.src = track.coverUrl;
+          img.alt = track.title;
+          img.className = 'w-full h-full object-cover';
+          art.appendChild(img);
+        } else {
+          art.innerHTML = isActive && !audio.paused
+            ? `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`
+            : NOTE_ICON_SVG;
+        }
 
         const textWrap = document.createElement('div');
         textWrap.className = 'min-w-0';
@@ -731,6 +895,7 @@
       audio.src = track.url;
       nowTitleEl.textContent = track.title;
       nowArtistEl.textContent = track.artist;
+      setCoverElement(nowPlayingCoverEl, track.coverUrl);
 
       audio.play().catch(() => {});
       updatePlayButton();
@@ -811,11 +976,15 @@
         });
       }
 
+      pushAppHistory({ view: 'modal', modal: 'addSongs' });
       addSongsModal.classList.remove('hidden');
     }
 
-    function closeAddSongsModal() {
-      addSongsModal.classList.add('hidden');
+    function closeAddSongsModal(fromPopstate = false) {
+      if (!addSongsModal.classList.contains('hidden')) {
+        addSongsModal.classList.add('hidden');
+        if (!fromPopstate) popAppHistorySilently();
+      }
     }
 
     function openSongMenu(trackId) {
@@ -824,6 +993,7 @@
       menuTrackId = trackId;
       menuSongTitleEl.textContent = track.title;
       menuSongArtistEl.textContent = track.artist;
+      setCoverElement(menuSongCoverEl, track.coverUrl);
 
       const fav = playlists.find((p) => p.id === 'favorites');
       const isFav = fav ? fav.songIds.includes(trackId) : false;
@@ -833,12 +1003,16 @@
       const inSpecificPlaylist = currentView === 'detail' && activePlaylistId !== 'all';
       menuRemoveFromPlBtn.classList.toggle('hidden', !inSpecificPlaylist);
 
+      pushAppHistory({ view: 'modal', modal: 'songMenu' });
       songMenuModal.classList.remove('hidden');
     }
 
-    function closeSongMenu() {
-      songMenuModal.classList.add('hidden');
-      menuTrackId = null;
+    function closeSongMenu(fromPopstate = false) {
+      if (!songMenuModal.classList.contains('hidden')) {
+        songMenuModal.classList.add('hidden');
+        menuTrackId = null;
+        if (!fromPopstate) popAppHistorySilently();
+      }
     }
 
     function openPlaylistModal(trackId) {
@@ -876,12 +1050,16 @@
         modalPlaylistOptionsEl.appendChild(label);
       });
 
+      pushAppHistory({ view: 'modal', modal: 'playlist' });
       playlistModal.classList.remove('hidden');
     }
 
-    function closePlaylistModal() {
-      playlistModal.classList.add('hidden');
-      modalTrackId = null;
+    function closePlaylistModal(fromPopstate = false) {
+      if (!playlistModal.classList.contains('hidden')) {
+        playlistModal.classList.add('hidden');
+        modalTrackId = null;
+        if (!fromPopstate) popAppHistorySilently();
+      }
     }
 
     function deleteCurrentPlaylist() {
@@ -899,6 +1077,7 @@
       const [removed] = tracks.splice(index, 1);
 
       if (removed.url) URL.revokeObjectURL(removed.url);
+      if (removed.coverUrl) URL.revokeObjectURL(removed.coverUrl);
       if (!removed.isDemo) {
         await deleteSongFromDB(removed.id);
       }
@@ -915,6 +1094,7 @@
         playingTrackId = null;
         nowTitleEl.textContent = 'Select a song to play';
         nowArtistEl.textContent = 'Tap a playlist to begin';
+        setCoverElement(nowPlayingCoverEl, null);
         currentTimeEl.textContent = '0:00';
         durationTimeEl.textContent = '0:00';
         seekBar.value = '0';
@@ -943,6 +1123,32 @@
     backToPlaylistsBtn.addEventListener('click', () => {
       currentView = 'home';
       renderApp();
+      popAppHistorySilently();
+    });
+
+    window.addEventListener('popstate', () => {
+      if (ignoreNextPopstate) {
+        ignoreNextPopstate = false;
+        return;
+      }
+      historyDepth = Math.max(0, historyDepth - 1);
+
+      if (!playlistModal.classList.contains('hidden')) {
+        closePlaylistModal(true);
+        return;
+      }
+      if (!songMenuModal.classList.contains('hidden')) {
+        closeSongMenu(true);
+        return;
+      }
+      if (!addSongsModal.classList.contains('hidden')) {
+        closeAddSongsModal(true);
+        return;
+      }
+      if (currentView === 'detail') {
+        currentView = 'home';
+        renderApp();
+      }
     });
 
     toggleSearchBtn.addEventListener('click', () => {
@@ -1113,19 +1319,33 @@
       let firstAddedId = null;
 
       for (const file of files) {
-        const cleanTitle = file.name.replace(/\.[^/.]+$/, '');
+        const fallbackTitle = file.name.replace(/\.[^/.]+$/, '');
+        const embedded = await extractEmbeddedMetadata(file);
+        let title = embedded.title || fallbackTitle;
+        let artist = embedded.artist || 'Saved Audio';
+        let coverBlob = embedded.coverBlob;
+
+        if (!coverBlob) {
+          const searchTerm = embedded.artist ? `${title} ${embedded.artist}` : fallbackTitle;
+          const online = await fetchOnlineMetadata(searchTerm);
+          if (online.coverBlob) coverBlob = online.coverBlob;
+          if (artist === 'Saved Audio' && online.artist) artist = online.artist;
+        }
+
         const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
         const record = {
           id,
-          title: cleanTitle,
-          artist: 'Saved Audio',
+          title,
+          artist,
           blob: file,
+          coverBlob: coverBlob || null,
           createdAt: Date.now()
         };
         await saveSongToDB(record);
         tracks.push({
           ...record,
           url: URL.createObjectURL(file),
+          coverUrl: coverBlob ? URL.createObjectURL(coverBlob) : null,
           isDemo: false
         });
         if (activePl && !activePl.songIds.includes(id)) {
@@ -1182,6 +1402,7 @@
           tracks.push({
             ...song,
             url: URL.createObjectURL(song.blob),
+            coverUrl: song.coverBlob ? URL.createObjectURL(song.coverBlob) : null,
             isDemo: false
           });
         });
