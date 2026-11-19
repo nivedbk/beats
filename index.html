@@ -1393,7 +1393,7 @@
       playlists = loadPlaylists();
       db = await openMusicDB();
 
-      storageBadgeEl.textContent = db ? 'Saved in browser' : 'Session only';
+      storageBadgeEl.textContent = db ? 'Saved in browser • v8' : 'Session only • v8';
 
       const savedSongs = await loadSongsFromDB();
       if (savedSongs.length > 0) {
@@ -1419,7 +1419,7 @@
     init();
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(() => {});
+        navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(() => {});
       });
     }
   </script>
